@@ -1,6 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use eframe::egui;
+use eframe::{egui, CreationContext};
+use feed_list::FeedList;
+mod def;
+mod feed_list;
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
@@ -14,41 +17,56 @@ fn main() -> Result<(), eframe::Error> {
         "grass",
         options,
         Box::new(|cc| {
-            // This gives us image support:
-            egui_extras::install_image_loaders(&cc.egui_ctx);
-            Box::<MyApp>::default()
+            egui_extras::install_image_loaders(&cc.egui_ctx); // this gives us image support
+            Box::new(Application::new(cc))
         }),
     )
 }
 
-struct MyApp {
+struct Application {
     // name: String,
     // age: u32,
+    fl: FeedList,
 }
 
-impl Default for MyApp {
-    fn default() -> Self {
+impl Application {
+    fn new(_cc: &CreationContext) -> Self {
         Self {
-            // name: "Arthur".to_owned(),
-            // age: 42,
+            fl: FeedList::new(),
         }
     }
 }
 
-impl eframe::App for MyApp {
+// impl Default for Application {
+//     fn default() -> Self {
+//         Self {
+//             // name: "Arthur".to_owned(),
+//             // age: 42,
+//         }
+//     }
+// }
+
+impl eframe::App for Application {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::SidePanel::left("rss source groups")
             .resizable(false)
             .min_width(260.0)
             .show(ctx, |ui| {
-                ui.label("there should be rss source groups");
+                ui.vertical_centered(|ui| {
+                    ui.heading("Feeds(rss source groups)");
+                });
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui.label(def::LOREM_IPSUM_LONG);
+                    ui.label(def::LOREM_IPSUM_LONG);
+                    ui.label(def::LOREM_IPSUM_LONG);
+                    ui.label(def::LOREM_IPSUM_LONG);
+                });
             });
+
         egui::SidePanel::left("rss feed list")
             .resizable(false)
             .min_width(260.0)
-            .show(ctx, |ui| {
-                ui.label("there should be rss feeds");
-            });
+            .show(ctx, |ui| self.fl.ui(ui));
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("there should be rss contents");
