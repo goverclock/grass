@@ -1,8 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use eframe::{egui, CreationContext};
+use read_list::ReadList;
 use feed_list::FeedList;
 mod def;
+mod read_list;
 mod feed_list;
 
 fn main() -> Result<(), eframe::Error> {
@@ -24,49 +26,30 @@ fn main() -> Result<(), eframe::Error> {
 }
 
 struct Application {
-    // name: String,
-    // age: u32,
     fl: FeedList,
+    rl: ReadList,
 }
 
 impl Application {
     fn new(_cc: &CreationContext) -> Self {
         Self {
             fl: FeedList::new(),
+            rl: ReadList::new(),
         }
     }
 }
-
-// impl Default for Application {
-//     fn default() -> Self {
-//         Self {
-//             // name: "Arthur".to_owned(),
-//             // age: 42,
-//         }
-//     }
-// }
 
 impl eframe::App for Application {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::SidePanel::left("rss source groups")
             .resizable(false)
             .min_width(260.0)
-            .show(ctx, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.heading("Feeds(rss source groups)");
-                });
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui.label(def::LOREM_IPSUM_LONG);
-                    ui.label(def::LOREM_IPSUM_LONG);
-                    ui.label(def::LOREM_IPSUM_LONG);
-                    ui.label(def::LOREM_IPSUM_LONG);
-                });
-            });
+            .show(ctx, |ui| self.fl.ui(ui));
 
         egui::SidePanel::left("rss feed list")
             .resizable(false)
             .min_width(260.0)
-            .show(ctx, |ui| self.fl.ui(ui));
+            .show(ctx, |ui| self.rl.ui(ui));
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("there should be rss contents");
