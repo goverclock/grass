@@ -24,7 +24,9 @@ impl ReadList {
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        ui.heading("there should be rss feeds");
+        ui.vertical_centered(|ui| {
+            ui.heading("Unread");
+        });
         let size = ui.min_size();
         ScrollArea::vertical().show(ui, |ui| {
             let fi = &self.feed_items;
