@@ -1,9 +1,8 @@
-use eframe::egui::{Button, Color32, ScrollArea, Sense, Stroke, Ui, Vec2};
-use rss::Channel;
+use eframe::egui::{Button, Color32, ScrollArea, Stroke, Ui, Vec2};
+
 pub struct ReadList {
-    selected_feed: Option<usize>,
-    // feeds: Vec<>
     feed_items: Vec<rss::Item>,
+    selected_item: Option<usize>,
 }
 
 impl ReadList {
@@ -18,25 +17,24 @@ impl ReadList {
         // let feed_items = chan.into_items();
 
         Self {
-            selected_feed: None,
+            selected_item: None,
             feed_items: vec![],
         }
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
         ui.vertical_centered(|ui| {
-            ui.heading("Unread");
+            ui.heading("All"); // All, Unread, Starred
         });
         let size = ui.min_size();
         ScrollArea::vertical().show(ui, |ui| {
-            let fi = &self.feed_items;
-            for i in 0..fi.len() {
-                let mut btn = Button::new(fi[i].title().unwrap_or("titleless feed"))
-                    .sense(Sense::click())
+            let _fi = &self.feed_items;
+            for (i, fi) in self.feed_items.iter().enumerate() {
+                let mut btn = Button::new(fi.title().unwrap_or("titleless feed"))
                     .stroke(Stroke::new(0.0, Color32::TRANSPARENT))
                     .rounding(3.0)
                     .min_size(Vec2::new(size.x - 10.0, 110.0));
-                if let Some(s) = self.selected_feed {
+                if let Some(s) = self.selected_item {
                     if s != i {
                         btn = btn.fill(Color32::default())
                     }
@@ -44,9 +42,9 @@ impl ReadList {
                     btn = btn.fill(Color32::default())
                 }
 
-                let resp = ui.add(btn);
-                if resp.clicked() {
-                    self.selected_feed = Some(i);
+                let btn = ui.add(btn);
+                if btn.clicked() {
+                    self.selected_item = Some(i);
                 }
             }
         });

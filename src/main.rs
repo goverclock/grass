@@ -3,7 +3,7 @@
 use eframe::{egui, CreationContext};
 use feed_list::FeedList;
 use read_list::ReadList;
-mod def;
+mod defs;
 mod feed_list;
 mod read_list;
 
@@ -44,12 +44,14 @@ impl eframe::App for Application {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::SidePanel::left("RSS feed list")
             .resizable(false)
-            .min_width(260.0)
+            .min_width(defs::FEED_PANEL_WIDTH)
+            .max_width(defs::FEED_PANEL_WIDTH)
             .show(ctx, |ui| self.fl.ui(ui));
 
         egui::SidePanel::left("RSS read list")
             .resizable(false)
             .min_width(260.0)
+            .max_width(260.0)
             .show(ctx, |ui| self.rl.ui(ui));
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -64,7 +66,6 @@ impl eframe::App for Application {
             //     self.age += 1;
             // }
             // ui.label(format!("Hello '{}', age {}", self.name, self.age));
-
             ui.image(egui::include_image!("../ferris.png"));
         });
     }
