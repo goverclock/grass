@@ -1,6 +1,7 @@
-use crate::defs;
+use crate::defs::{self, ICON_SIZE};
 use std::cmp::Ordering;
 
+use eframe::egui::{include_image, Align, Image, Layout};
 #[allow(unused)]
 use eframe::egui::{
     Button, CollapsingHeader, Color32, Context, InnerResponse, ScrollArea, SidePanel, Stroke, Ui,
@@ -8,8 +9,9 @@ use eframe::egui::{
 };
 use opml::{Outline, OPML};
 pub struct FeedList {
-    outlines: Vec<Outline>,
+    pub outlines: Vec<Outline>,
     seleted_feed: Option<(usize, usize)>, // outlines[i][j](j >= 1) for item, outlines[i][0] for folder itself
+    pub sync_btn_clicked: bool,
 }
 
 impl FeedList {
@@ -42,13 +44,24 @@ impl FeedList {
         Self {
             outlines,
             seleted_feed: None,
+            sync_btn_clicked: false,
         }
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
-        ui.vertical_centered(|ui| {
-            ui.heading("Feeds");
+        ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+            let sync_btn = Button::image(
+                Image::new(include_image!(
+                    "../assets/icon/refresh_FILL0_wght400_GRAD0_opsz24.svg"
+                ))
+                .max_size(ICON_SIZE),
+            )
+            .rounding(3.0)
+            .fill(Color32::default());
+            let sync_btn = ui.add(sync_btn);
+            self.sync_btn_clicked = sync_btn.clicked();
         });
+        ui.heading("Feeds");
 
         // the list
         ScrollArea::vertical().show(ui, |ui| {
@@ -96,7 +109,7 @@ impl<'a> FeedButton<'a> {
             .stroke(Stroke::new(0.0, Color32::TRANSPARENT))
             .rounding(3.0)
             .min_size(Vec2::new(defs::FEED_PANEL_WIDTH - 10.0, 30.0));
-        Self { 0: button }
+        Self(button)
     }
     pub fn highlight(mut self, h: bool) -> Self {
         if !h {

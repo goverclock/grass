@@ -62,7 +62,12 @@ impl eframe::App for Application {
 
         let fl = &mut self.feed_list;
         let rl = &mut self.read_list;
+
         rl.set_outline(fl.selected_outline());
+
+        if fl.sync_btn_clicked {
+            rl.fetch_item(&fl.outlines);
+        }
     }
 }
 
