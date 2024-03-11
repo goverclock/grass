@@ -1,8 +1,10 @@
-use std::cmp::Ordering;
 use crate::defs;
+use std::cmp::Ordering;
 
+#[allow(unused)]
 use eframe::egui::{
-    Button, CollapsingHeader, Color32, ScrollArea, Stroke, Ui, Vec2, Widget, WidgetText,
+    Button, CollapsingHeader, Color32, Context, InnerResponse, ScrollArea, SidePanel, Stroke, Ui,
+    Vec2, Widget, WidgetText,
 };
 use opml::{Outline, OPML};
 pub struct FeedList {
@@ -24,6 +26,7 @@ impl FeedList {
         // TODO: check opml.head.unwrap here
         let mut outlines = opml.body.outlines;
 
+        // sort whenever updated
         outlines.sort_by(|a, b| {
             let a_is_folder = !a.outlines.is_empty();
             let b_is_folder = !b.outlines.is_empty();
@@ -47,20 +50,21 @@ impl FeedList {
             ui.heading("Feeds");
         });
 
+        // the list
         ScrollArea::vertical().show(ui, |ui| {
             for (i, ol) in self.outlines.iter().enumerate() {
                 if ol.outlines.is_empty() {
                     let btn =
-                        ItemButton::new(&ol.text).highlight(self.seleted_feed == Some((i, 1)));
+                        FeedButton::new(&ol.text).highlight(self.seleted_feed == Some((i, 0)));
                     let btn = ui.add(btn);
                     if btn.clicked() {
-                        self.seleted_feed = Some((i, 1));
+                        self.seleted_feed = Some((i, 0));
                     }
                 } else {
                     // it's a feed folder
                     CollapsingHeader::new(&ol.text).show(ui, |ui| {
                         for (j, child_ol) in ol.outlines.iter().enumerate() {
-                            let btn = ItemButton::new(&child_ol.text)
+                            let btn = FeedButton::new(&child_ol.text)
                                 .highlight(self.seleted_feed == Some((i, j + 1)));
                             let btn = ui.add(btn);
                             if btn.clicked() {
@@ -72,30 +76,38 @@ impl FeedList {
             }
         });
     }
+
+    pub fn selected_outline(&self) -> Option<Outline> {
+        if let Some((i, j)) = self.seleted_feed {
+            if j == 0 {
+                return Some(self.outlines[i].to_owned());
+            }
+            return Some(self.outlines[i].outlines[j - 1].to_owned());
+        }
+        None
+    }
 }
 
-struct ItemButton<'a> {
-    button: Button<'a>,
-}
+struct FeedButton<'a>(Button<'a>);
 
-impl<'a> ItemButton<'a> {
+impl<'a> FeedButton<'a> {
     pub fn new(text: impl Into<WidgetText>) -> Self {
         let button = Button::new(text)
             .stroke(Stroke::new(0.0, Color32::TRANSPARENT))
             .rounding(3.0)
             .min_size(Vec2::new(defs::FEED_PANEL_WIDTH - 10.0, 30.0));
-        Self { button }
+        Self { 0: button }
     }
     pub fn highlight(mut self, h: bool) -> Self {
         if !h {
-            self.button = self.button.fill(Color32::default());
+            self.0 = self.0.fill(Color32::default());
         }
         self
     }
 }
 
-impl<'a> Widget for ItemButton<'a> {
+impl<'a> Widget for FeedButton<'a> {
     fn ui(self, ui: &mut Ui) -> eframe::egui::Response {
-        self.button.ui(ui)
+        self.0.ui(ui)
     }
 }

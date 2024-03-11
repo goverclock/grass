@@ -1,8 +1,23 @@
-use eframe::egui::{Button, Color32, ScrollArea, Stroke, Ui, Vec2};
+use std::hash::Hash;
+
+use eframe::egui::{
+    ahash::{HashMap, HashMapExt},
+    Button, Color32, ScrollArea, Stroke, Ui, Vec2,
+};
+use opml::Outline;
+
+#[derive(PartialEq, Eq)]
+struct HashOutline(Outline);
+impl Hash for HashOutline {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.xml_url.hash(state)
+    }
+}
 
 pub struct ReadList {
-    feed_items: Vec<rss::Item>,
+    feed_items: HashMap<HashOutline, Vec<rss::Item>>, // fetched item for each outline, sorted by time(newest first)
     selected_item: Option<usize>,
+    showing_outlines: Option<Outline>,
 }
 
 impl ReadList {
@@ -15,11 +30,17 @@ impl ReadList {
         //     .unwrap();
         // let chan = Channel::read_from(&content[..]).unwrap();
         // let feed_items = chan.into_items();
+        let hm = HashMap::new();
 
         Self {
             selected_item: None,
-            feed_items: vec![],
+            feed_items: hm,
+            showing_outlines: None,
         }
+    }
+
+    pub fn set_outline(&mut self, ol: Option<Outline>) {
+        self.showing_outlines = ol
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
@@ -27,9 +48,34 @@ impl ReadList {
             ui.heading("All"); // All, Unread, Starred
         });
         let size = ui.min_size();
+
+        let mut showing_items = vec![]; // TODO: can this be Vec::<&Item>?
+        if let Some(ols) = &self.showing_outlines {
+            if ols.outlines.len() == 0 {
+                // single outline
+                self.feed_items
+                    .entry(HashOutline(ols.to_owned()))
+                    .or_insert(vec![])
+                    .iter()
+                    .for_each(|i| {
+                        showing_items.push(i.to_owned());
+                    });
+            } else {
+                // outline folder
+                for ol in ols.outlines.iter() {
+                    self.feed_items
+                        .entry(HashOutline(ol.to_owned()))
+                        .or_insert(vec![])
+                        .iter()
+                        .for_each(|i| {
+                            showing_items.push(i.to_owned());
+                        });
+                }
+            }
+        }
+
         ScrollArea::vertical().show(ui, |ui| {
-            let _fi = &self.feed_items;
-            for (i, fi) in self.feed_items.iter().enumerate() {
+            for (i, fi) in showing_items.iter().enumerate() {
                 let mut btn = Button::new(fi.title().unwrap_or("titleless feed"))
                     .stroke(Stroke::new(0.0, Color32::TRANSPARENT))
                     .rounding(3.0)

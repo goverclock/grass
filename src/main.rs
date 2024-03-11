@@ -26,48 +26,43 @@ fn main() -> Result<(), eframe::Error> {
 }
 
 struct Application {
-    fl: FeedList,
-    rl: ReadList,
+    feed_list: FeedList,
+    read_list: ReadList,
 }
 
 impl Application {
     fn new(cc: &CreationContext) -> Self {
         setup_fonts(&cc.egui_ctx);
         Self {
-            fl: FeedList::new(),
-            rl: ReadList::new(),
+            feed_list: FeedList::new(),
+            read_list: ReadList::new(),
         }
     }
 }
 
 impl eframe::App for Application {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::SidePanel::left("RSS feed list")
+        // TODO: FeedPanel
+        egui::SidePanel::left("RSS feed panel")
             .resizable(false)
             .min_width(defs::FEED_PANEL_WIDTH)
             .max_width(defs::FEED_PANEL_WIDTH)
-            .show(ctx, |ui| self.fl.ui(ui));
+            .show(ctx, |ui| self.feed_list.ui(ui));
 
-        egui::SidePanel::left("RSS read list")
+        egui::SidePanel::left("RSS read panel")
             .resizable(false)
-            .min_width(260.0)
-            .max_width(260.0)
-            .show(ctx, |ui| self.rl.ui(ui));
+            .min_width(defs::READ_PANEL_WIDTH)
+            .max_width(defs::READ_PANEL_WIDTH)
+            .show(ctx, |ui| self.read_list.ui(ui));
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("RSS Content");
-            // ui.horizontal(|ui| {
-            //     let name_label = ui.label("Your name: ");
-            //     ui.text_edit_singleline(&mut self.name)
-            //         .labelled_by(name_label.id);
-            // });
-            // ui.add(egui::Slider::new(&mut self.age, 0..=120).text("age"));
-            // if ui.button("Increment").clicked() {
-            //     self.age += 1;
-            // }
-            // ui.label(format!("Hello '{}', age {}", self.name, self.age));
-            ui.image(egui::include_image!("../ferris.png"));
+            ui.image(egui::include_image!("../assets/ferris.png"));
         });
+
+        let fl = &mut self.feed_list;
+        let rl = &mut self.read_list;
+        rl.set_outline(fl.selected_outline());
     }
 }
 
