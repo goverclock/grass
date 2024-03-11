@@ -1,7 +1,12 @@
-use eframe::egui::{Button, Color32, ScrollArea, Stroke, Ui, Vec2};
+use eframe::egui::{Button, Color32, Context, ScrollArea, Stroke, Ui, Vec2};
 use opml::Outline;
 use rss::Channel;
-use std::{collections::HashMap, hash::Hash};
+use std::{
+    collections::HashMap,
+    hash::Hash,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 #[derive(PartialEq, Eq)]
 struct HashOutline(Outline);
@@ -12,17 +17,20 @@ impl Hash for HashOutline {
 }
 
 pub struct ReadList {
-    all_items: HashMap<HashOutline, Vec<rss::Item>>, // fetched item for each outline, sorted by time(newest first)
+    all_items: Arc<Mutex<HashMap<HashOutline, Vec<rss::Item>>>>, // fetched item for each outline, sorted by time(newest first)
     selected_item: Option<usize>,
     showing_outlines: Option<Outline>,
+
+    ctx: Context,
 }
 
 impl ReadList {
-    pub fn new() -> Self {
+    pub fn new(ctx: Context) -> Self {
         Self {
             selected_item: None,
-            all_items: HashMap::new(),
+            all_items: Arc::new(Mutex::new(HashMap::new())),
             showing_outlines: None,
+            ctx,
         }
     }
 
@@ -31,20 +39,19 @@ impl ReadList {
     }
 
     pub fn fetch_item(&mut self, outlines: &Vec<Outline>) {
-        // TODO: do not use blocking, use async, remember to update Cargo.toml to remove blocking feature
-        // let content = reqwest::blocking::get("https://feeds.twit.tv/twit.xml")
-        //     .unwrap()
-        //     .bytes()
-        //     .unwrap();
-        // let chan = Channel::read_from(&content[..]).unwrap();
-        // let feed_items = chan.into_items();
+        println!("fetch BEGIN");
 
-        let mut fetch = |ol: &Outline| {
+        fn fetch(
+            ctx: Context,
+            ol: Outline,
+            results: Arc<Mutex<HashMap<HashOutline, Vec<rss::Item>>>>,
+        ) {
             if ol.xml_url.is_none() {
                 println!("fail to fetch {}", ol.text);
                 return;
             }
             let url = ol.xml_url.as_ref().unwrap();
+
             println!("fetching: {}", url);
             let content = reqwest::blocking::get(url).unwrap().bytes().unwrap();
             let chan = Channel::read_from(&content[..]);
@@ -56,21 +63,40 @@ impl ReadList {
             let fetched_items = chan.into_items();
             println!("fetched {}", fetched_items.len());
 
-            self.all_items
+            results
+                .lock()
+                .unwrap()
                 .insert(HashOutline(ol.to_owned()), fetched_items);
-        };
 
-        for ol in outlines {
-            if ol.outlines.is_empty() {
-                fetch(ol);
-                continue;
-            }
-            for child_ol in ol.outlines.iter() {
-                fetch(child_ol);
+            if Arc::strong_count(&results) == 2 {
+                println!("fetch DONE, repainting");
+                ctx.request_repaint();
             }
         }
 
-        println!("fetch done");
+        for ol in outlines {
+            if ol.outlines.is_empty() {
+                let result = Arc::clone(&self.all_items);
+                let ol = ol.to_owned();
+                let ctx = self.ctx.clone();
+                thread::spawn(move || {
+                    fetch(ctx, ol, result);
+                });
+                continue;
+            }
+            for child_ol in ol.outlines.iter() {
+                let result = Arc::clone(&self.all_items);
+                let ol = child_ol.to_owned();
+                let ctx = self.ctx.clone();
+                thread::spawn(move || {
+                    fetch(ctx, ol, result);
+                });
+            }
+        }
+    }
+
+    pub fn fetching(&self) -> bool {
+        Arc::strong_count(&self.all_items) != 1
     }
 
     pub fn ui(&mut self, ui: &mut Ui) {
@@ -82,6 +108,8 @@ impl ReadList {
         let mut showing_items = vec![]; // TODO: can this be Vec::<&Item>?
         let mut gather_items = |ol: &Outline| {
             self.all_items
+                .lock()
+                .unwrap()
                 .entry(HashOutline(ol.to_owned()))
                 .or_default()
                 .iter()

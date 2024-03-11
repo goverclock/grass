@@ -35,7 +35,7 @@ impl Application {
         setup_fonts(&cc.egui_ctx);
         Self {
             feed_list: FeedList::new(),
-            read_list: ReadList::new(),
+            read_list: ReadList::new(cc.egui_ctx.clone()),
         }
     }
 }
@@ -65,7 +65,7 @@ impl eframe::App for Application {
 
         rl.set_outline(fl.selected_outline());
 
-        if fl.sync_btn_clicked {
+        if fl.sync_btn_clicked && !rl.fetching() {
             rl.fetch_item(&fl.outlines);
         }
     }
