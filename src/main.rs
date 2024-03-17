@@ -1,8 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use content::Content;
 use eframe::{egui, CreationContext};
 use feed_list::FeedList;
 use read_list::ReadList;
+mod content;
 mod defs;
 mod feed_list;
 mod read_list;
@@ -28,6 +30,7 @@ fn main() -> Result<(), eframe::Error> {
 struct Application {
     feed_list: FeedList,
     read_list: ReadList,
+    content: Content,
 }
 
 impl Application {
@@ -36,6 +39,7 @@ impl Application {
         Self {
             feed_list: FeedList::new(),
             read_list: ReadList::new(cc.egui_ctx.clone()),
+            content: Content::new(),
         }
     }
 }
@@ -55,19 +59,19 @@ impl eframe::App for Application {
             .max_width(defs::READ_PANEL_WIDTH)
             .show(ctx, |ui| self.read_list.ui(ui));
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("RSS Content");
-            ui.image(egui::include_image!("../assets/ferris.png"));
-        });
+        egui::CentralPanel::default().show(ctx, |ui| self.content.ui(ui));
 
         let fl = &mut self.feed_list;
         let rl = &mut self.read_list;
+        let ct = &mut self.content;
 
         rl.set_outline(fl.selected_outline());
 
-        if fl.sync_btn_clicked && !rl.fetching() {
+        if fl.sync_btn_clicked && !rl.is_fetching() {
             rl.fetch_item(&fl.outlines);
         }
+
+        ct.show_item(rl.selected_item())
     }
 }
 

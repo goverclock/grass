@@ -34,6 +34,7 @@ impl ReadList {
         }
     }
 
+    // set the outlines for showing
     pub fn set_outline(&mut self, ol: Option<Outline>) {
         self.showing_outlines = ol
     }
@@ -95,16 +96,18 @@ impl ReadList {
         }
     }
 
-    pub fn fetching(&self) -> bool {
+    pub fn is_fetching(&self) -> bool {
         Arc::strong_count(&self.all_items) != 1
     }
 
-    pub fn ui(&mut self, ui: &mut Ui) {
-        ui.vertical_centered(|ui| {
-            ui.heading("All"); // All, Unread, Starred
-        });
-        let size = ui.min_size();
+    pub fn selected_item(&self) -> Option<rss::Item> {
+        let ind = self.selected_item?;
+        let showing_items = self.get_showing_items();
+        Some(showing_items[ind].clone())
+    }
 
+    // calculate showing items base on selected outlines
+    fn get_showing_items(&self) -> Vec<rss::Item> {
         let mut showing_items = vec![]; // TODO: can this be Vec::<&Item>?
         let mut gather_items = |ol: &Outline| {
             self.all_items
@@ -129,7 +132,16 @@ impl ReadList {
                 }
             }
         }
+        showing_items
+    }
 
+    pub fn ui(&mut self, ui: &mut Ui) {
+        ui.vertical_centered(|ui| {
+            ui.heading("All"); // All, Unread, Starred
+        });
+        let size = ui.min_size();
+
+        let showing_items = self.get_showing_items();
         ScrollArea::vertical().show(ui, |ui| {
             for (i, fi) in showing_items.iter().enumerate() {
                 let mut btn = Button::new(fi.title().unwrap_or("titleless feed"))
