@@ -12,6 +12,7 @@ pub struct FeedList {
     pub outlines: Vec<Outline>,
     seleted_feed: Option<(usize, usize)>, // outlines[i][j](j >= 1) for item, outlines[i][0] for folder itself
     pub sync_btn_clicked: bool,
+    pub changed_feed: bool,
 }
 
 impl FeedList {
@@ -45,6 +46,7 @@ impl FeedList {
             outlines,
             seleted_feed: None,
             sync_btn_clicked: false,
+            changed_feed: false,
         }
     }
 
@@ -63,7 +65,8 @@ impl FeedList {
         });
         ui.heading("Feeds");
 
-        // the list
+        // feed list
+        self.changed_feed = false;
         ScrollArea::vertical().show(ui, |ui| {
             for (i, ol) in self.outlines.iter().enumerate() {
                 if ol.outlines.is_empty() {
@@ -72,6 +75,7 @@ impl FeedList {
                     let btn = ui.add(btn);
                     if btn.clicked() {
                         self.seleted_feed = Some((i, 0));
+                        self.changed_feed = true;
                     }
                 } else {
                     // it's a feed folder
@@ -82,6 +86,7 @@ impl FeedList {
                             let btn = ui.add(btn);
                             if btn.clicked() {
                                 self.seleted_feed = Some((i, j + 1));
+                                self.changed_feed = true;
                             }
                         }
                     });

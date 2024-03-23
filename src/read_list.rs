@@ -35,7 +35,7 @@ impl ReadList {
     }
 
     // set the outlines for showing
-    pub fn set_outline(&mut self, ol: Option<Outline>) {
+    pub fn show_outline(&mut self, ol: Option<Outline>) {
         self.showing_outlines = ol
     }
 
@@ -104,6 +104,10 @@ impl ReadList {
         let ind = self.selected_item?;
         let showing_items = self.get_showing_items();
         Some(showing_items[ind].clone())
+    }
+
+    pub fn unselsect(&mut self) {
+        self.selected_item = None;
     }
 
     // calculate showing items base on selected outlines

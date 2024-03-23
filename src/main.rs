@@ -65,12 +65,17 @@ impl eframe::App for Application {
         let rl = &mut self.read_list;
         let ct = &mut self.content;
 
-        rl.set_outline(fl.selected_outline());
+        rl.show_outline(fl.selected_outline());
 
         if fl.sync_btn_clicked && !rl.is_fetching() {
             rl.fetch_item(&fl.outlines);
         }
 
+        if fl.changed_feed {
+            rl.unselsect()
+        }
+
+        // show actual contents
         ct.show_item(rl.selected_item())
     }
 }
